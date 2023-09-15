@@ -809,7 +809,7 @@ class EncryptedContentInfo(Sequence):
     _fields = [
         ('content_type', ContentType),
         ('content_encryption_algorithm', EncryptionAlgorithm),
-        ('encrypted_content', OctetString, {'implicit': 0, 'optional': True}),
+        ('encrypted_content', OctetString, {'implicit': 0, 'optional': True, 'strict_parse': False}),
     ]
 
 
