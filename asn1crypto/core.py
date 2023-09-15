@@ -240,7 +240,7 @@ class Asn1Value(object):
         return value
 
     def __init__(self, explicit=None, implicit=None, no_explicit=False, tag_type=None, class_=None, tag=None,
-                 optional=None, default=None, contents=None, method=None):
+                 optional=None, default=None, contents=None, method=None, strict_parse=True):
         """
         The optional parameter is not used, but rather included so we don't
         have to delete it from the parameter dictionary when passing as keyword
@@ -5563,21 +5563,28 @@ def _build(class_, method, tag, header, contents, trailer, spec=None, spec_param
                         CLASS_NUM_TO_NAME_MAP.get(class_, class_)
                     ))
                 if method != value.method:
-                    # Allow parsing a primitive method as constructed if the value
-                    # is indefinite length. This is to allow parsing BER.
-                    ber_indef = method == 1 and value.method == 0 and trailer == b'\x00\x00'
-                    if not ber_indef or not isinstance(value, Constructable):
-                        raise ValueError(unwrap(
-                            '''
-                            Error parsing %s - method should have been %s, but %s was found
-                            ''',
-                            type_name(value),
-                            METHOD_NUM_TO_NAME_MAP.get(value.method),
-                            METHOD_NUM_TO_NAME_MAP.get(method, method)
-                        ))
-                    else:
+                    if spec_params is not None and \
+                            "strict_parse" in spec_params \
+                            and not spec_params["strict_parse"]:
+                        # we do this because we want the parsing to continue
                         value.method = method
                         value._indefinite = True
+                    else:
+                        # Allow parsing a primitive method as constructed if the value
+                        # is indefinite length. This is to allow parsing BER.
+                        ber_indef = method == 1 and value.method == 0 and trailer == b'\x00\x00'
+                        if not ber_indef or not isinstance(value, Constructable):
+                            raise ValueError(unwrap(
+                                '''
+                                Error parsing %s - method should have been %s, but %s was found
+                                ''',
+                                type_name(value),
+                                METHOD_NUM_TO_NAME_MAP.get(value.method),
+                                METHOD_NUM_TO_NAME_MAP.get(method, method)
+                            ))
+                        else:
+                            value.method = method
+                            value._indefinite = True
                 if tag != value.tag:
                     if isinstance(value._bad_tag, tuple):
                         is_bad_tag = tag in value._bad_tag
